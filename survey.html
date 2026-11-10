@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แบบประเมินความพึงพอใจการอบรม</title>
+  <meta name="description" content="แบบประเมินความพึงพอใจการอบรมสำหรับผู้เข้าร่วม สแกนตอบง่ายผ่านมือถือ">
+  <!-- Tailwind CSS CDN for standalone deployment -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <!-- Firebase App & Realtime Database SDK (Compat v10) -->
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+          TF
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 leading-tight">แบบประเมินความพึงพอใจ</h1>
+          <p class="text-xs text-slate-500">การอบรมเชิงปฏิบัติการ (ไม่ต้องระบุชื่อ)</p>
+        </div>
+      </div>
+      <div class="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
+        5 ข้อสเกล 1-5
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-xl mx-auto w-full px-4 py-5 flex-1">
+
+    <!-- Already Submitted Screen (Hidden by default) -->
+    <div id="alreadySubmittedView" class="hidden bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-xs my-6">
+      <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+        ✓
+      </div>
+      <h2 class="text-xl font-bold text-slate-900 mb-2">ท่านได้ส่งแบบประเมินแล้ว</h2>
+      <p class="text-sm text-slate-600 mb-6">
+        ระบบบันทึกความคิดเห็นของท่านเรียบร้อยแล้ว ขอขอบพระคุณที่สละเวลาให้ข้อมูลเพื่อการพัฒนาหลักสูตรครับ
+      </p>
+      <div class="bg-slate-50 rounded-xl p-4 text-left border border-slate-100 mb-6 text-sm">
+        <div class="flex justify-between py-1 text-slate-600 border-b border-slate-200">
+          <span>เวลาที่ส่ง:</span>
+          <span id="submittedTimestamp" class="font-medium text-slate-800">-</span>
+        </div>
+        <div class="flex justify-between py-1 text-slate-600">
+          <span>คะแนนเฉลี่ยที่ท่านให้:</span>
+          <span id="submittedScoreAvg" class="font-bold text-indigo-600 text-base">- / 5.00</span>
+        </div>
+      </div>
+      <button onclick="resetSubmissionForTesting()" class="text-xs text-slate-600 hover:text-indigo-600 underline cursor-pointer">
+        [โหมดทดสอบ] ล้างสถานะเพื่อทดลองส่งใหม่อีกครั้ง
+      </button>
+    </div>
+
+    <!-- Survey Form View -->
+    <form id="surveyForm" class="space-y-6">
+
+      <!-- Intro Card -->
+      <div class="bg-indigo-50/70 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-950">
+        <p class="font-medium mb-1">คำชี้แจงในการตอบแบบประเมิน</p>
+        <p class="text-xs text-indigo-800 leading-relaxed">
+          กรุณาให้คะแนนความพึงพอใจ 1 ถึง 5 ดาว โดย (1 = น้อยที่สุด, 2 = น้อย, 3 = ปานกลาง, 4 = มาก, 5 = มากที่สุด) ข้อมูลของท่านจะถูกส่งขึ้นจอสรุปผลทันทีโดยไม่ระบุตัวตน
+        </p>
+      </div>
+
+      <!-- Question 1 -->
+      <div class="bg-white border border-slate-200 rounded-xl p-4.5 shadow-2xs">
+        <div class="flex items-start gap-3 mb-3">
+          <span class="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900 leading-snug">ความชัดเจนและประโยชน์ของเนื้อหา</h2>
+            <p class="text-xs text-slate-500 mt-0.5">เนื้อหาตรงตามเป้าหมาย ชัดเจน และตอบโจทย์การนำไปพัฒนาทักษะ</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-5 gap-1.5" data-question="q1">
+          <button type="button" onclick="selectRating('q1', 1)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">1</button>
+          <button type="button" onclick="selectRating('q1', 2)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">2</button>
+          <button type="button" onclick="selectRating('q1', 3)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">3</button>
+          <button type="button" onclick="selectRating('q1', 4)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">4</button>
+          <button type="button" onclick="selectRating('q1', 5)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">5</button>
+        </div>
+        <div class="flex justify-between text-[11px] text-slate-600 mt-1.5 px-0.5">
+          <span>1: น้อยที่สุด</span>
+          <span>5: มากที่สุด</span>
+        </div>
+        <input type="hidden" name="q1" id="q1_val" required>
+      </div>
+
+      <!-- Question 2 -->
+      <div class="bg-white border border-slate-200 rounded-xl p-4.5 shadow-2xs">
+        <div class="flex items-start gap-3 mb-3">
+          <span class="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900 leading-snug">ความเชี่ยวชาญและการถ่ายทอดของวิทยากร</h2>
+            <p class="text-xs text-slate-500 mt-0.5">วิทยากรถ่ายทอดเข้าใจง่าย มีปฏิสัมพันธ์ และตอบข้อซักถามชัดเจน</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-5 gap-1.5" data-question="q2">
+          <button type="button" onclick="selectRating('q2', 1)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">1</button>
+          <button type="button" onclick="selectRating('q2', 2)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">2</button>
+          <button type="button" onclick="selectRating('q2', 3)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">3</button>
+          <button type="button" onclick="selectRating('q2', 4)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">4</button>
+          <button type="button" onclick="selectRating('q2', 5)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">5</button>
+        </div>
+        <div class="flex justify-between text-[11px] text-slate-600 mt-1.5 px-0.5">
+          <span>1: น้อยที่สุด</span>
+          <span>5: มากที่สุด</span>
+        </div>
+        <input type="hidden" name="q2" id="q2_val" required>
+      </div>
+
+      <!-- Question 3 -->
+      <div class="bg-white border border-slate-200 rounded-xl p-4.5 shadow-2xs">
+        <div class="flex items-start gap-3 mb-3">
+          <span class="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900 leading-snug">สื่อ เอกสารประกอบ และกิจกรรม Workshop</h2>
+            <p class="text-xs text-slate-500 mt-0.5">สไลด์ ตัวอย่างประกอบ และกิจกรรมฝึกปฏิบัติมีความเหมาะสม</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-5 gap-1.5" data-question="q3">
+          <button type="button" onclick="selectRating('q3', 1)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">1</button>
+          <button type="button" onclick="selectRating('q3', 2)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">2</button>
+          <button type="button" onclick="selectRating('q3', 3)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">3</button>
+          <button type="button" onclick="selectRating('q3', 4)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">4</button>
+          <button type="button" onclick="selectRating('q3', 5)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">5</button>
+        </div>
+        <div class="flex justify-between text-[11px] text-slate-600 mt-1.5 px-0.5">
+          <span>1: น้อยที่สุด</span>
+          <span>5: มากที่สุด</span>
+        </div>
+        <input type="hidden" name="q3" id="q3_val" required>
+      </div>
+
+      <!-- Question 4 -->
+      <div class="bg-white border border-slate-200 rounded-xl p-4.5 shadow-2xs">
+        <div class="flex items-start gap-3 mb-3">
+          <span class="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span>
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900 leading-snug">ความเหมาะสมของสถานที่/ระบบ และเวลา</h2>
+            <p class="text-xs text-slate-500 mt-0.5">สถานที่หรือระบบออนไลน์มีความพร้อม บริหารเวลาได้ดี</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-5 gap-1.5" data-question="q4">
+          <button type="button" onclick="selectRating('q4', 1)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">1</button>
+          <button type="button" onclick="selectRating('q4', 2)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">2</button>
+          <button type="button" onclick="selectRating('q4', 3)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">3</button>
+          <button type="button" onclick="selectRating('q4', 4)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">4</button>
+          <button type="button" onclick="selectRating('q4', 5)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">5</button>
+        </div>
+        <div class="flex justify-between text-[11px] text-slate-600 mt-1.5 px-0.5">
+          <span>1: น้อยที่สุด</span>
+          <span>5: มากที่สุด</span>
+        </div>
+        <input type="hidden" name="q4" id="q4_val" required>
+      </div>
+
+      <!-- Question 5 -->
+      <div class="bg-white border border-slate-200 rounded-xl p-4.5 shadow-2xs">
+        <div class="flex items-start gap-3 mb-3">
+          <span class="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">5</span>
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900 leading-snug">การนำความรู้ไปประยุกต์ใช้ในการปฏิบัติงานจริง</h2>
+            <p class="text-xs text-slate-500 mt-0.5">สามารถนำความรู้และเทคนิคไปต่อยอดใช้กับการทำงานจริงได้</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-5 gap-1.5" data-question="q5">
+          <button type="button" onclick="selectRating('q5', 1)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">1</button>
+          <button type="button" onclick="selectRating('q5', 2)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">2</button>
+          <button type="button" onclick="selectRating('q5', 3)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">3</button>
+          <button type="button" onclick="selectRating('q5', 4)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">4</button>
+          <button type="button" onclick="selectRating('q5', 5)" class="rating-btn py-3 rounded-lg border border-slate-200 text-center hover:bg-slate-50 font-medium text-sm transition">5</button>
+        </div>
+        <div class="flex justify-between text-[11px] text-slate-600 mt-1.5 px-0.5">
+          <span>1: น้อยที่สุด</span>
+          <span>5: มากที่สุด</span>
+        </div>
+        <input type="hidden" name="q5" id="q5_val" required>
+      </div>
+
+      <!-- Comment Area -->
+      <div class="bg-white border border-slate-200 rounded-xl p-4.5 shadow-2xs">
+        <label for="comment" class="block text-sm font-semibold text-slate-900 mb-1">
+          ข้อเสนอแนะเพิ่มเติม <span class="text-xs font-normal text-slate-600">(ไม่บังคับ)</span>
+        </label>
+        <p class="text-xs text-slate-500 mb-2">สิ่งที่ท่านประทับใจ หรือข้อเสนอแนะเพื่อการพัฒนาในรุ่นถัดไป</p>
+        <textarea id="comment" name="comment" rows="3" placeholder="พิมพ์ความคิดเห็นของท่านที่นี่..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+      </div>
+
+      <!-- Error banner if unselected -->
+      <div id="validationAlert" class="hidden bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2.5 rounded-lg">
+        กรุณาเลือกคะแนนให้ครบทั้ง 5 ข้อก่อนกดส่งแบบประเมินครับ
+      </div>
+
+      <!-- Submit Button -->
+      <div class="pt-2 pb-6">
+        <button type="submit" id="submitBtn" class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+          <span>ส่งแบบประเมินความพึงพอใจ</span>
+          <span>➔</span>
+        </button>
+      </div>
+
+    </form>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-600">
+    Training Feedback System · ปลอดภัย ไม่บันทึกชื่อผู้ตอบ
+  </footer>
+
+  <script>
+    // -------------------------------------------------------------
+    // Firebase Realtime Database Config (Optional or replace with your own)
+    // -------------------------------------------------------------
+    // ใส่ firebaseConfig ของท่านที่นี่ หากต้องการส่งตรงเข้า Firebase Realtime Database
+    const firebaseConfig = {
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com"
+    };
+
+    let rtdb = null;
+    try {
+      if (firebaseConfig.databaseURL && !firebaseConfig.databaseURL.includes("YOUR_PROJECT_ID")) {
+        firebase.initializeApp(firebaseConfig);
+        rtdb = firebase.database();
+      }
+    } catch(err) {
+      console.warn("Firebase not configured or in fallback mode:", err);
+    }
+
+    const STORAGE_KEY = 'training_feedback_entries_v1';
+    const SUBMITTED_DEVICE_KEY = 'training_feedback_submitted_device_v1';
+
+    // Check if user already submitted on this device
+    function checkDeviceSubmission() {
+      const record = localStorage.getItem(SUBMITTED_DEVICE_KEY);
+      if (record) {
+        try {
+          const parsed = JSON.parse(record);
+          document.getElementById('surveyForm').classList.add('hidden');
+          document.getElementById('alreadySubmittedView').classList.remove('hidden');
+          document.getElementById('submittedTimestamp').innerText = new Date(parsed.submittedAt).toLocaleTimeString('th-TH');
+          document.getElementById('submittedScoreAvg').innerText = (parsed.overallScore || 5.0).toFixed(2) + " / 5.00";
+          return true;
+        } catch(e) {}
+      }
+      return false;
+    }
+
+    function resetSubmissionForTesting() {
+      localStorage.removeItem(SUBMITTED_DEVICE_KEY);
+      window.location.reload();
+    }
+
+    // Rating selector logic
+    const selectedRatings = { q1: 0, q2: 0, q3: 0, q4: 0, q5: 0 };
+
+    function selectRating(qId, score) {
+      selectedRatings[qId] = score;
+      document.getElementById(qId + '_val').value = score;
+      
+      const container = document.querySelector(`[data-question="${qId}"]`);
+      if (!container) return;
+
+      const buttons = container.querySelectorAll('.rating-btn');
+      buttons.forEach((btn, index) => {
+        const btnScore = index + 1;
+        if (btnScore === score) {
+          btn.className = 'rating-btn py-3 rounded-lg border-2 border-indigo-600 bg-indigo-600 text-white font-bold text-base shadow-xs transition';
+        } else {
+          btn.className = 'rating-btn py-3 rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 font-medium text-sm transition';
+        }
+      });
+
+      document.getElementById('validationAlert').classList.add('hidden');
+    }
+
+    // Handle Form Submit
+    document.getElementById('surveyForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // Check all 5 questions
+      if (!selectedRatings.q1 || !selectedRatings.q2 || !selectedRatings.q3 || !selectedRatings.q4 || !selectedRatings.q5) {
+        document.getElementById('validationAlert').classList.remove('hidden');
+        return;
+      }
+
+      const commentVal = document.getElementById('comment').value.trim();
+      const overall = Number(((selectedRatings.q1 + selectedRatings.q2 + selectedRatings.q3 + selectedRatings.q4 + selectedRatings.q5) / 5).toFixed(2));
+      const now = new Date();
+
+      const newEntry = {
+        id: 'fb-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+        timestamp: Date.now(),
+        submittedAt: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        ratings: { ...selectedRatings },
+        overallScore: overall,
+        comment: commentVal || null
+      };
+
+      // 1. Save to Firebase Realtime Database if connected
+      if (rtdb) {
+        rtdb.ref('feedback').push(newEntry);
+      }
+
+      // 2. Save to localStorage & BroadcastChannel (immediate cross-tab sync)
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const existing = raw ? JSON.parse(raw) : [];
+        existing.unshift(newEntry);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+
+        // Mark this device as submitted
+        localStorage.setItem(SUBMITTED_DEVICE_KEY, JSON.stringify({
+          submitted: true,
+          submittedAt: now.toISOString(),
+          overallScore: overall
+        }));
+
+        if ('BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('training_feedback_channel');
+          bc.postMessage({ type: 'ENTRIES_UPDATED', timestamp: Date.now() });
+        }
+      } catch(err) {
+        console.error("Local sync error:", err);
+      }
+
+      // Trigger Confetti
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 60,
+          origin: { y: 0.6 }
+        });
+      } catch(err) {}
+
+      // Switch to submitted state
+      setTimeout(function() {
+        checkDeviceSubmission();
+      }, 500);
+    });
+
+    // Run check on load
+    checkDeviceSubmission();
+  </script>
+</body>
+</html>

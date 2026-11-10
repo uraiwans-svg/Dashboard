@@ -1,0 +1,6 @@
+{
+  "name": "Training Feedback Live Dashboard",
+  "description": "เว็บแอปประเมินความพึงพอใจการอบรมแบบเรียลไทม์ รองรับตอบผ่านมือถือ สแกน QR Code หน้าจอ Dashboard ขึ้นจอโปรเจกเตอร์ พร้อมดาวน์โหลดผล CSV และคู่มือเชื่อมต่อ Firebase",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
